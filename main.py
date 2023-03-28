@@ -132,7 +132,6 @@ class Distances(object):
         trucks = Truck.get_all_trucks()
         for truck, count in cheapest_combo.items():
             cost += trucks[truck][1] * count
-        print(distance)
         return cost * distance
 
 
@@ -226,10 +225,8 @@ class Leg(object):
 
     def get_total_weight(self):
         total_weight = 0.00
-        print(f"cargo items: {self.cargo.get_weight()}")
         for item in self.cargo.items:
             total_weight += item.weight
-        print(f"total weight: {total_weight}")
         return total_weight
 
     def get_distance(self):
@@ -237,6 +234,14 @@ class Leg(object):
 
     def get(self):
         return [self.origin, self.destination, self.get_total_weight()]
+
+    def get_unit_cost(self, cost):
+        cargo_list = self.cargo.items
+        total_quantity = 0
+        for item in cargo_list:
+            total_quantity += cargo_list.count(item)
+        unit_cost = cost / total_quantity
+        return unit_cost
 
 
 def get_pairs(city_list):
@@ -276,7 +281,7 @@ def read_items():
         name = input("Item a ser transportado (ENTER para finalizar): ").upper()
         if name == "":
             break
-        weight = input("Peso do item: ")
+        weight = input("Peso do item (em kg): ")
         if weight == "":
             print("Erro: peso não pode ser vazio")
             continue
@@ -293,9 +298,9 @@ def read_items():
 # --- OPTIONS ---
 def main():
     global distances
-    print("\nBem-vindo(a) ao Sistema de Transporte Interestadual de Cargas!\n")
+    print("\nBem-vindo(a) ao Sistema de Transporte Interestadual de Cargas!")
     while True:
-        print("Digite a opção desejada:")
+        print("\nDigite a opção desejada:")
         print("1) Consultar trechos x modalidade")
         print("2) Cadastrar transporte")
         print("3) Dados estatísticos")
@@ -371,8 +376,11 @@ def main():
                 cost = distances.calculate_cost(distance, cheapest_combo)
 
                 amount_of_trucks = sum(cheapest_combo.values())
+
+                unit_cost = leg.get_unit_cost(cost)
+
                 print(
-                    f"Rota: {leg.origin} - {leg.destination}, peso total = {total_weight}kg, caminhões necessários: {cheapest_combo}, distância total = {distance}km, preço total = R${cost:.2f}"
+                    f"Rota: {leg.origin} - {leg.destination}, peso total = {total_weight}kg, caminhões necessários: {cheapest_combo}, distância total = {distance}km, preço total = R${cost:.2f}, preço unitário = R${unit_cost:.2f}"
                 )
 
                 # Define the filename of the new CSV file
@@ -435,6 +443,3 @@ def main():
 # Check whether the module is being run as the main program
 if __name__ == "__main__":
     main()
-
-# TODO: trocar pronto por ok, mais rapido
-# fazer testes
