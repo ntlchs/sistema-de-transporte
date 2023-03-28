@@ -1,85 +1,6 @@
 import csv
-
-
-class City(object):
-    def __init__(self, name):
-        self.name = name
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.name == other.name
-
-    def __str__(self):
-        return self.name
-
-    @classmethod
-    def from_input(cls):
-        name = input("Nome da cidade:").upper()
-        if name == "":
-            return None
-        return cls(name)
-
-
-class Cargo(object):
-    def __init__(self):
-        self.quantities = {}
-
-    def add(self, item, quantity):
-        self.quantities[item.name] = quantity
-
-    def get(self, item):
-        return self.quantities[item.name]
-
-
-class Leg(object):
-    def __init__(self, origin, destination, cargo):
-        self.origin = origin
-        self.destination = destination
-        self.cargo = cargo
-
-
-class Truck(object):
-    def __init__(self, type, capacity, price_per_km):
-        self.type = type
-        self.capacity = capacity
-        self.price_per_km = price_per_km
-
-
-class CargoItem(object):
-    def __init__(self, name, weight):
-        self.name = name
-        self.weight = weight
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.name == other.name
-
-    def __str__(self):
-        return f"{self.name} ({self.weight})"
-
-    def __repr__(self):
-        return f"{self.name} ({self.weight}kg)"
-
-    @classmethod
-    def from_input(cls):
-        name = input("Item a ser transportado:").upper()
-        if name == "":
-            return None
-        weight = float(input("Peso do item: "))
-        return cls(name, weight)
-
-
-class Transport(object):
-    def __init__(self, legs, fleet):
-        self.legs = legs
-        self.fleet = fleet
-
-
-class Transport(object):
-    def __init__(self, trucks):
-        self.trucks = trucks
+import itertools
+from itertools import combinations_with_replacement
 
 
 class Distances(object):
@@ -100,56 +21,227 @@ class Distances(object):
         self.data = data
 
     def get(self, origin, destination):
-        return self.data[origin.name][destination.name]
+        try:
+            return self.data[origin.name][destination.name]
+        except KeyError:
+            print("Cidade não encontrada.")
+            return None
+
+    def city_exists(self, city):
+        return city.name in self.data
+
+    def calculate_cost(self, leg, trucks):
+        origin = leg.origin.name
+        destination = leg.destination.name
+        distance = self.data[origin][destination]
+        cost = 0
+        for truck in trucks:
+            cost += truck.price_per_km * distance
+        return cost
 
 
-truck_info = {
-    "small": {"capacity": 1000, "cost": 4.87},
-    "medium": {"capacity": 4000, "cost": 11.92},
-    "large": {"capacity": 10000, "cost": 27.44},
-}
+distances = Distances("DNIT-Distancias.csv")
 
 
-def check_distance_between_cities(start, end):
-    start_index = -1
-    end_index = -1
-    km = 0
+class Truck(object):
+    def __init__(self, type, capacity, price_per_km):
+        self.type = type
+        self.capacity = capacity
+        self.price_per_km = price_per_km
 
-    for info in city_info:
-        city_index = info[0]
-        city_name = info[1]
-        if start == city_name:
-            start_index = city_index
-        if end == city_name:
-            end_index = city_index
+    truck_info = {
+        "PEQUENO": {"capacity": 1000, "cost": 4.87},
+        "MEDIO": {"capacity": 4000, "cost": 11.92},
+        "GRANDE": {"capacity": 10000, "cost": 27.44},
+    }
 
-    if start_index < 0 or end_index < 0:
-        print(f"Erro: O nome de alguma das cidades não foi encontrado.")
-        return None
-    if start_index > end_index:
-        start_index, end_index = end_index, start_index
-    km = int(city_info[start_index][2][end_index])
-    if km > 0:
-        print(f"A viagem de {start} até {end} tem {km} km de distância.")
-        return km
-    if start_index == end_index:
-        print("Erro: Cidade duplicada. Tente novamente")
-    else:
-        print(f"Erro: Não foi possível encontrar uma rota de {start} até {end}.")
+    def __str__(self):
+        type = self.type
+        trucks = {}
+        for type, info in cls.truck_info.items():
+            trucks[type] = (info["capacity"], info["cost"])
+        return trucks
+
+    @classmethod
+    def from_input(cls):
+        while True:
+            truck_type = input("Tamanho do caminhão (PEQUENO/MEDIO/GRANDE): ").upper()
+            if truck_type in cls.truck_info:
+                break
+            print("Tamanho inválido, tente novamente.")
+        info = cls.truck_info[truck_type]
+        if truck_type == "":
+            return None
+        return cls(truck_type, info["capacity"], info["cost"])
+
+    # use bruteforce to get combinations
+    def get_possible_combinations(self, truck_counts):
+        print("truck_counts: ", truck_counts)
+        combinations_len = truck_counts["PEQUENO"]
+        trucks = ["PEQUENO", "MEDIO", "GRANDE"]
+        combinations = []
+        for i in range(1, combinations_len + 1):
+            for c in combinations_with_replacement(trucks, i):
+                if len(c) == i:
+                    combination_dict = {}
+                    for truck in c:
+                        if truck not in combination_dict:
+                            combination_dict[truck] = 1
+                        else:
+                            combination_dict[truck] += 1
+                    combinations.append(combination_dict)
+        return combinations
+
+    @classmethod
+    def get_all_trucks(cls):
+        trucks = {}
+        for type, info in cls.truck_info.items():
+            trucks[type] = (info["capacity"], info["cost"])
+        return trucks
+
+    @classmethod
+    def get_trucks_for_leg(cls, leg):
+        cls.leg = leg
+        truck_counts = {"PEQUENO": 0, "MEDIO": 0, "GRANDE": 0}
+        trucks = cls.get_all_trucks()
+        small_capacity = trucks["PEQUENO"][0]
+        weight = leg.get_total_weight()
+        max_trucks = 0
+        print("small:", small_capacity)
+        print("weight:", weight)
+        amount_of_small_ones = round(weight / small_capacity)
+        print("amount_of_small_ones:", amount_of_small_ones)
+        if amount_of_small_ones > 1:
+            max_trucks = amount_of_small_ones
+            truck_counts["PEQUENO"] = amount_of_small_ones
+        else:
+            truck_counts["PEQUENO"] = 1
+        return truck_counts
+
+    @classmethod
+    def get_valid_combinations(cls, combinations, weight):
+        valid_combos = []
+        trucks = cls.get_all_trucks()
+        print("trucks: ", trucks)
+        for combination in combinations:
+            print("combination: ", combination)
+            print(combination.keys(), combination.values())
+        print("trucks: ", trucks)
+        return valid_combos
+
+    @classmethod
+    def get_capacity(cls):
+        pass
 
 
-def get_list_of_objects_and_weight():
-    objects = {}
-    while True:
-        item = input("Insira o nome do item (ou aperte ENTER para finalizar): ").upper()
-        if item == "":
-            if not objects:
-                print("Você deve inserir pelo menos um item.")
-                return None
-            return objects
-        weight = float(input("Insira o peso do item (em kg): "))
-        quantity = int(input("Insira a quantidade do item: "))
-        objects[item] = {"peso": weight, "quantidade": quantity}
+class City(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __eq__(self, other):
+        if other is None:
+            return False
+        if type(other) == str:
+            return self.name == other
+
+        return self.name == other.name
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f"{self.name}"
+
+    def __hash__(self):
+        return hash(self.name)
+
+    @classmethod
+    def from_input(cls):
+        name = input("Nome da cidade:").upper()
+        if name == "":
+            return None
+        return cls(name)
+
+
+class CargoItem(object):
+    def __init__(self, name, weight):
+        self.name = name
+        self.weight = weight
+
+    def __eq__(self, other):
+        return self.name == other.name and self.weight == other.weight
+
+    def __hash__(self):
+        return hash((self.name, self.weight))
+
+    def __str__(self):
+        return f"{self.name} ({self.weight}kg)"
+
+    def __repr__(self):
+        return f"{self.name} ({self.weight}kg)"
+
+    def get(self):
+        return ({self.name}, {self.weight})
+
+
+class Cargo(object):
+    def __init__(self):
+        self.items = []
+        self.total_weight = 0
+        self.quantity = 0
+
+    def __str__(self):
+        return str({item.name: item.weight for item in self.items})
+
+    def add(self, item, quantity):
+        for _ in range(quantity):
+            self.items.append(item)
+        print(f"{quantity} {item} adicionado(s) ao carregamento.")
+
+    def get_items(self):
+        return list(set(item.name for item in self.items))
+
+    def get_weight(self):
+        for item in self.items:
+            self.total_weight += item.weight * self.quantity
+        return self.total_weight
+
+
+class Leg(object):
+    def __init__(self, origin, destination, cargo):
+        self.origin = origin
+        self.destination = destination
+        self.cargo = cargo
+
+    def __str__(self):
+        return f"{self.origin} - {self.destination}: {self.cargo}"
+
+    def __repr__(self):
+        return f"{self.origin} - {self.destination}: {self.cargo}"
+
+    def get_total_weight(self):
+        total_weight = 0.00
+        print(f"cargo items: {self.cargo.get_weight()}")
+        for item in self.cargo.items:
+            total_weight += item.weight
+        print(f"total weight: {total_weight}")
+        return total_weight
+
+    def get_distance(self):
+        return distances.get(self.origin, self.destination)
+
+    def get(self):
+        return [self.origin, self.destination, self.get_total_weight()]
+
+
+class Transport(object):
+    def __init__(self, legs):
+        self.legs = legs
+        self.truck_counts = {"PEQUENO": 0, "MEDIO": 0, "GRANDE": 0}
+
+    def calculate_cost(self, distances):
+        total_cost = 0
+        return total_cost
 
 
 def get_pairs(city_list):
@@ -161,143 +253,52 @@ def get_pairs(city_list):
     return pairs
 
 
-def calculate_total_distance(distances):
-    result = sum(distances)
-    return result
-
-
-def get_destination_for_objects(objects, cities):
-    destination_for_objects = {}
-    cities = cities[1:]  # remove first city
-    for obj, obj_data in objects.items():
-        print(f"Insira a cidade de destino para o item {obj}")
-        for i, city in enumerate(cities):
-            print(f"{i+1}: {city}")
-        while True:
-            choice = input("Escolha uma opção: ")
-            try:
-                choice = int(choice)
-                if 1 <= choice <= len(cities):
-                    selected_city = cities[choice - 1]
-                    print(
-                        f"Você selecionou {selected_city} como destino do objeto {obj}."
-                    )
-                    if selected_city not in destination_for_objects:
-                        destination_for_objects[selected_city] = {}
-                    destination_for_objects[selected_city][obj] = obj_data
-                    break
-                else:
-                    print("Opção inválida. Tente novamente.")
-            except ValueError:
-                print("Opção inválida. Tente novamente.")
-    return destination_for_objects
-
-
-def calculate_total_weight(objects_with_weight_and_destination):
-    total_weight = 0
-    for obj in objects_with_weight_and_destination.values():
-        total_weight += obj["peso"] * obj["quantidade"]
-    print(f"O peso total dos itens a serem transportados é de {total_weight} kg.")
-    return total_weight
-
-
-def calculate_total_weight_for_route(objects):
-    total_weight = calculate_total_weight(objects)
-    print(f"O peso total dos itens a serem transportados é de {total_weight} kg.")
-    num_trucks_needed = 0
-    print(
-        f"São necessários {num_trucks_needed} caminhões para transportar todos os itens."
-    )
-    return total_weight, num_trucks_needed
-
-
-def calculate_total_weight_for_destination(destination_objects):
-    total_weight = 0
-    for item, item_data in destination_objects.items():
-        total_weight += item_data["peso"] * item_data["quantidade"]
-    return total_weight
-
-
-def get_truck_combination_for_route(destination_for_objects, trip_info):
-    trucks_needed = {"small": 0, "medium": 0, "large": 0}
-    global truck_info
-
-    # Calculate the total weight of objects that need to be transported to each destination
-    total_weights = {}
-    for city, obj_data in destination_for_objects.items():
-        total_weight = calculate_total_weight_for_destination(obj_data)
-        total_weights[city] = total_weight
-
-    truck_count = {
-        "small": 1
-    }  # Initialize with one minimun small truck required for transportation
-
-    for city in total_weights:
-        number_of_trucks = 0
-        remaining_weight = float(total_weights[city])
-        for truck, info in truck_info.items():
-            number_of_trucks = truck_count.get(truck, 0)
-            truck_capacity = info["capacity"]
-            while remaining_weight > 0:
-                if remaining_weight <= truck_capacity or (
-                    remaining_weight >= truck_capacity and truck == "large"
-                ):
-                    number_of_trucks += 1
-                    remaining_weight -= truck_capacity
-            truck_count[truck] = number_of_trucks
-
-    # Calculate the cost of transport for each destination
-    total_distance = calculate_total_distance([info[2] for info in trip_info])
-    cost_per_destination = {}
-    minimum_cost_per_km = 4.87
-    total_cost_per_km = 0
-    if total_cost_per_km == 0:
-        total_cost_per_km = minimum_cost_per_km
-
-    # Return the cheapest way to transport all objects to all destinations
-    cheapest_count = 0
-    cheapest_sizes = []
-
-    cheapest_sizes_str = ", ".join(cheapest_sizes)
-    total_cost_for_transport = total_cost_per_km * total_distance
-    return f"A maneira mais econômica de transportar todos os objetos é usar {cheapest_count} caminhão(ões) de tamanho(s) {cheapest_sizes_str}, por um custo de R${total_cost_per_km:.2f}/km. Ao todo, para percorrer {total_distance}km, o custo será de R${total_cost_for_transport:.2f}"
-
-
 def get_list_of_cities():
     print("Forneça a lista, em ordem, da sua rota. ")
     cities = []
     while True:
-        city = input(
-            "Insira o nome da cidade (ou aperte ENTER para finalizar): "
-        ).upper()
+        city = input("Insira o nome da cidade (ENTER para finalizar): ").upper()
         if city == "":
-            output = " - ".join(cities)
             if len(cities) <= 1:
                 print("Erro: forneça pelo menos duas cidades.")
                 continue
+            city_names = [c.name for c in cities]
+            output = " - ".join(city_names)
             print(f"Sua rota é: {output}")
             return cities
+        elif distances.city_exists(City(city)) == False:
+            print(f"Erro: A cidade não existe. Tente novamente.")
+            continue
         if city in cities:
-            print("Erro: Cidade duplicada.")
+            print("Erro: Cidade duplicada, não foi adicionada à lista.")
             continue
         cities.append(City(city))
 
 
 def read_items():
-    object_list = []
-    item = CargoItem.from_input()
-    while item is not None:
-        if item not in object_list:
-            object_list.append(item)
+    items = []
+    while True:
+        name = input("Item a ser transportado (ENTER para finalizar): ").upper()
+        if name == "":
+            break
+        weight = input("Peso do item: ")
+        if weight == "":
+            print("Erro: peso não pode ser vazio")
+            continue
         else:
-            print("Erro: objeto duplicado, e não pode ser inserido na lista.")
-        item = CargoItem.from_input()
-    return object_list
+            weight = float(weight)
+        item = CargoItem(name, weight)
+        if item not in items:
+            items.append(item)
+        else:
+            print("Item já adicionado.")
+    return items
 
 
 # --- OPTIONS ---
 def main():
-    print("Bem-vindo(a) ao Sistema de Transporte Interestadual de Cargas")
+    global distances
+    print("Bem-vindo(a) ao Sistema de Transporte Interestadual de Cargas!")
     while True:
         print("Digite a opção desejada:")
         print("1) Consultar trechos x modalidade")
@@ -306,58 +307,77 @@ def main():
         print("4) Finalizar o programa")
         option = int(input("Opção: "))
 
-        distances = Distances("DNIT-Distancias.csv")
-
         # Consultar trechos x modalidade
         if option == 1:
             start = City.from_input()
             end = City.from_input()
             d = distances.get(start, end)
-            size = 0
-            cost = 0
-            print(
-                f"Para ir da cidade {orig} até {dest} num caminhão de tamanho {size}, a distância é de {d}km, com um custo total de {cost}"
-            )
+            truck = Truck.from_input()
+            cost = truck.price_per_km
+            total_cost = cost * d
+            if d == None:
+                print("Erro: A rota solicitada não existe. Tente novamente")
+            else:
+                print(
+                    f"Para ir da cidade {start} até {end} num caminhão de tamanho {truck}, a distância é de {d}km, com um custo total de R${total_cost:.2f}"
+                )
 
         # Cadastrar transporte
         elif option == 2:
-            cities = []
-            print("Forneça a lista, em ordem, da sua rota. ")
 
-            city = City.from_input()
-            while city is not None:
-                print("pressione ENTER para finalizar")
-                if city not in cities:
-                    cities.append(city)
-                else:
-                    print("Erro: cidade duplicada, não pode ser inserida na rota.")
-                city = City.from_input()
-            if len(cities) < 2:
-                print("Erro: forneça pelo menos duas cidades.")
-                return
-            pairs = get_pairs(cities)
-
-            for orig, dest in pairs:
-                dist = distances.get(orig, dest)
-
-                print(
-                    f"Para ir da cidade {orig} até {dest}, a distância é de {dist}km."
-                )
-
-            print("Forneça a lista dos objetos. ")
-            print("pressione ENTER para finalizar")
-
-            object_list = read_items()
             cargo = Cargo()
-            for object in object_list:
-                quantity = input("Insira a quantidade do objeto {object}:")
-                if quantity == "":
-                    cargo.add(object, int(quantity))
+            cities = get_list_of_cities()
+            origin = cities[0]
+            items = read_items()
+            legs = []
 
-            get_list_of_objects_and_weight(object, quantity)
+            if len(items) == 0:
+                print("Erro: Insira pelo menos um item.")
+                return
+            for item in items:
+                while True:
+                    print(f"Destino para o item {item.name}")
+                    possible_destinations = [city for city in cities[1:]]
+                    for i, destination in enumerate(possible_destinations):
+                        print(f"{i+1}. {destination.name}")
+                    choice = input("Escolha o número do destino desejado: ")
+                    try:
+                        choice = int(choice)
+                        destination = possible_destinations[choice - 1]
+                        break
+                    except (ValueError, IndexError):
+                        print("Erro: Escolha inválida.")
+                quantity = int(input(f"Quantidade do item {item.name}: "))
+                cargo.add(item, quantity)
+                print("Cargo information:")
+                for i, item in enumerate(cargo.get_items()):
+                    print(
+                        f"Item {i+1}: {item}, destino: {destination}, quantidade: {quantity}"
+                    )
+                leg = Leg(origin, destination, cargo)
+                legs.append(leg)
 
-            destination_for_objects = get_destination_for_objects(object_list, cities)
-            trucks = get_truck_combination_for_route(destination_for_objects, distances)
+            transport = Transport(legs)
+
+            trucks = transport.calculate_trucks()
+
+            total_cost = transport.calculate_cost(distances)
+
+            print(legs, transport, total_cost)
+
+            for leg in transport.legs:
+                total_weight = leg.get_total_weight()
+                trucks = 0
+                truck_counts = truck.get_trucks_for_leg(leg)
+                combinations = truck.get_possible_combinations(truck_counts)
+                valid_combos = truck.get_valid_combinations(combinations, total_weight)
+                distance = distances.get(leg.origin, leg.destination)
+                cost = distances.calculate_cost(leg, trucks)
+                print(
+                    f"Rota: {leg.origin} - {leg.destination}, peso total = {total_weight}kg, "
+                    f"serão necessários {len(trucks)} caminhões do tamanho {truck_type}, cada um percorrerá "
+                    f"uma distancia de {distance}km, totalizando R${cost:.2f}"
+                )
 
         # Dados estatísticos
         elif option == 3:
