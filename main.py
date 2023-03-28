@@ -1,4 +1,5 @@
 import csv
+import os
 import itertools
 from itertools import combinations_with_replacement
 
@@ -397,34 +398,36 @@ def main():
                     with open(filename, mode="a", newline="") as f:
                         writer = csv.writer(f)
                         writer.writerow(data)
-                
+
                 else:
                     with open(filename, mode="w", newline="") as f:
                         writer = csv.writer(f)
-                        writer.writerow(["ORIGEM", "DESTINO", "PESO TOTAL", "CAMINHÕES", "DISTÂNCIA TOTAL", "PREÇO TOTAL"])
+                        writer.writerow(
+                            [
+                                "ORIGEM",
+                                "DESTINO",
+                                "PESO TOTAL",
+                                "CAMINHÕES",
+                                "DISTÂNCIA TOTAL",
+                                "PREÇO TOTAL",
+                            ]
+                        )
                         writer.writerow(data)
-
-if os.path.isfile(filename):
-    # File exists, so open it in append mode and add a new row
-    with open(filename, mode="a", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(data)
-else:
-    # File does not exist, so create a new file and write a header row followed by the data
-    with open(filename, mode="w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["First Name", "Last Name", "Age"])
-        writer.writerow(data)
-
 
         # Dados estatísticos
         elif option == 3:
+            filename = "output.csv"
             print("Dados estatísticos")
             # Open output.csv in read mode
-            with open("output.csv", "r") as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    print(row)
+            if os.path.isfile(filename):
+                with open(filename, "r") as f:
+                    reader = csv.reader(f)
+                    for row in reader:
+                        print(row)
+            else:
+                print(
+                    "Não existem transportes cadastrados. Cadastre um transporte e tente novamente."
+                )
 
         # Finalizar programa
         elif option == 4:
