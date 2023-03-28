@@ -17,11 +17,9 @@ class Truck(object):
     }
 
     def __str__(self):
-        type = self.type
-        trucks = {}
-        for type, info in cls.truck_info.items():
-            trucks[type] = (info["capacity"], info["cost"])
-        return trucks
+        for type, info in self.truck_info.items():
+            if self.type == type:
+                return type
 
     @classmethod
     def get_all_trucks(cls):
@@ -313,7 +311,7 @@ def main():
             start = City.from_input()
             end = City.from_input()
             d = distances.get(start, end)
-            truck = truck.from_input()
+            truck = Truck.from_input()
             cost = truck.price_per_km
             total_cost = cost * d
             if d == None:
