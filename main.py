@@ -48,7 +48,6 @@ class Truck(object):
         weight = leg.get_total_weight()
         max_trucks = 0
         amount_of_small_ones = round(weight / small_capacity)
-        print("amount_of_small_ones:", amount_of_small_ones)
         if amount_of_small_ones > 1:
             max_trucks = amount_of_small_ones
             truck_counts["PEQUENO"] = amount_of_small_ones
@@ -59,7 +58,6 @@ class Truck(object):
     # use bruteforce to get combinations
     @classmethod
     def get_possible_combinations(cls, truck_counts):
-        print("truck_counts: ", truck_counts)
         combinations_len = truck_counts["PEQUENO"]
         trucks = ["PEQUENO", "MEDIO", "GRANDE"]
         combinations = []
@@ -85,7 +83,6 @@ class Truck(object):
                 combo_weight += trucks[truck][0] * count
             if combo_weight >= weight:
                 valid_combos.append(combination)
-        print("valid_combos: ", valid_combos)
         return valid_combos
 
     @classmethod
@@ -134,7 +131,6 @@ class Distances(object):
         cost = 0.00
         trucks = Truck.get_all_trucks()
         for truck, count in cheapest_combo.items():
-            print("trucks[truck][1]: ", trucks[truck][1])
             cost += trucks[truck][1] * count
         print(distance)
         return cost * distance
@@ -166,7 +162,7 @@ class City(object):
 
     @classmethod
     def from_input(cls):
-        name = input("Nome da cidade:").upper()
+        name = input("Digite a cidade: ").upper()
         if name == "":
             return None
         return cls(name)
@@ -297,17 +293,18 @@ def read_items():
 # --- OPTIONS ---
 def main():
     global distances
-    print("Bem-vindo(a) ao Sistema de Transporte Interestadual de Cargas!")
+    print("\nBem-vindo(a) ao Sistema de Transporte Interestadual de Cargas!\n")
     while True:
         print("Digite a opção desejada:")
         print("1) Consultar trechos x modalidade")
         print("2) Cadastrar transporte")
         print("3) Dados estatísticos")
-        print("4) Finalizar o programa")
+        print("4) Finalizar o programa\n")
         option = int(input("Opção: "))
 
         # Consultar trechos x modalidade
         if option == 1:
+            print("Consultar trechos x modalidade".upper())
             start = City.from_input()
             end = City.from_input()
             d = distances.get(start, end)
@@ -323,7 +320,7 @@ def main():
 
         # Cadastrar transporte
         elif option == 2:
-
+            print("Cadastrar transporte".upper())
             cargo = Cargo()
             cities = get_list_of_cities()
             origin = cities[0]
@@ -415,7 +412,7 @@ def main():
         # Dados estatísticos
         elif option == 3:
             filename = "output.csv"
-            print("Dados estatísticos")
+            print("Dados estatísticos".upper())
             # Open output.csv in read mode
             if os.path.isfile(filename):
                 with open(filename, "r") as f:
