@@ -36,11 +36,7 @@ class Test(unittest.TestCase):
 
         leg = Leg(origin, destination, cargo)
 
-        print("leg: ", leg)
-
         truck_combinations = Truck.get_trucks_for_leg(leg)
-
-        print("truck_combinations: ", truck_combinations)
 
         combinations = [
             {"PEQUENO": 1},
@@ -100,19 +96,80 @@ class Test(unittest.TestCase):
             {"GRANDE": 5},
         ]
 
+        valid_combos = [
+            {"GRANDE": 1},
+            {"PEQUENO": 1, "MEDIO": 1},
+            {"PEQUENO": 1, "GRANDE": 1},
+            {"MEDIO": 2},
+            {"MEDIO": 1, "GRANDE": 1},
+            {"GRANDE": 2},
+            {"PEQUENO": 2, "MEDIO": 1},
+            {"PEQUENO": 2, "GRANDE": 1},
+            {"PEQUENO": 1, "MEDIO": 2},
+            {"PEQUENO": 1, "MEDIO": 1, "GRANDE": 1},
+            {"PEQUENO": 1, "GRANDE": 2},
+            {"MEDIO": 3},
+            {"MEDIO": 2, "GRANDE": 1},
+            {"MEDIO": 1, "GRANDE": 2},
+            {"GRANDE": 3},
+            {"PEQUENO": 3, "MEDIO": 1},
+            {"PEQUENO": 3, "GRANDE": 1},
+            {"PEQUENO": 2, "MEDIO": 2},
+            {"PEQUENO": 2, "MEDIO": 1, "GRANDE": 1},
+            {"PEQUENO": 2, "GRANDE": 2},
+            {"PEQUENO": 1, "MEDIO": 3},
+            {"PEQUENO": 1, "MEDIO": 2, "GRANDE": 1},
+            {"PEQUENO": 1, "MEDIO": 1, "GRANDE": 2},
+            {"PEQUENO": 1, "GRANDE": 3},
+            {"MEDIO": 4},
+            {"MEDIO": 3, "GRANDE": 1},
+            {"MEDIO": 2, "GRANDE": 2},
+            {"MEDIO": 1, "GRANDE": 3},
+            {"GRANDE": 4},
+            {"PEQUENO": 5},
+            {"PEQUENO": 4, "MEDIO": 1},
+            {"PEQUENO": 4, "GRANDE": 1},
+            {"PEQUENO": 3, "MEDIO": 2},
+            {"PEQUENO": 3, "MEDIO": 1, "GRANDE": 1},
+            {"PEQUENO": 3, "GRANDE": 2},
+            {"PEQUENO": 2, "MEDIO": 3},
+            {"PEQUENO": 2, "MEDIO": 2, "GRANDE": 1},
+            {"PEQUENO": 2, "MEDIO": 1, "GRANDE": 2},
+            {"PEQUENO": 2, "GRANDE": 3},
+            {"PEQUENO": 1, "MEDIO": 4},
+            {"PEQUENO": 1, "MEDIO": 3, "GRANDE": 1},
+            {"PEQUENO": 1, "MEDIO": 2, "GRANDE": 2},
+            {"PEQUENO": 1, "MEDIO": 1, "GRANDE": 3},
+            {"PEQUENO": 1, "GRANDE": 4},
+            {"MEDIO": 5},
+            {"MEDIO": 4, "GRANDE": 1},
+            {"MEDIO": 3, "GRANDE": 2},
+            {"MEDIO": 2, "GRANDE": 3},
+            {"MEDIO": 1, "GRANDE": 4},
+            {"GRANDE": 5},
+        ]
+
         total_weight = 5000
+
         self.assertEqual(leg.get_total_weight(), total_weight)
         self.assertEqual(truck_combinations, {"PEQUENO": 5, "MEDIO": 0, "GRANDE": 0})
         self.assertEqual(
-            Truck.get_possible_combinations(
-                Truck, {"PEQUENO": 5, "MEDIO": 0, "GRANDE": 0}
-            ),
+            Truck.get_possible_combinations({"PEQUENO": 5, "MEDIO": 0, "GRANDE": 0}),
             combinations,
         )
         self.assertEqual(
-            Truck.get_valid_combinations(combinations, total_weight),
-            [],
+            Truck.get_valid_combinations(combinations, total_weight), valid_combos
         )
+
+        self.assertEqual(
+            Truck.get_cheapest_combo(valid_combos), {"PEQUENO": 1, "MEDIO": 1}
+        )
+
+        cheapest_combo = {"PEQUENO": 1, "MEDIO": 1}
+
+        distance = 1962
+
+        self.assertEqual(Distances.calculate_cost(distance, cheapest_combo), 0)
 
 
 unittest.main()

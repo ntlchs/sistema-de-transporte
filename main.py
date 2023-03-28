@@ -3,6 +3,107 @@ import itertools
 from itertools import combinations_with_replacement
 
 
+class Truck(object):
+    def __init__(self, type, capacity, price_per_km):
+        self.type = type
+        self.capacity = capacity
+        self.price_per_km = price_per_km
+
+    truck_info = {
+        "PEQUENO": {"capacity": 1000, "cost": 4.87},
+        "MEDIO": {"capacity": 4000, "cost": 11.92},
+        "GRANDE": {"capacity": 10000, "cost": 27.44},
+    }
+
+    def __str__(self):
+        type = self.type
+        trucks = {}
+        for type, info in cls.truck_info.items():
+            trucks[type] = (info["capacity"], info["cost"])
+        return trucks
+
+    @classmethod
+    def get_all_trucks(cls):
+        trucks = {}
+        for type, info in cls.truck_info.items():
+            trucks[type] = (info["capacity"], info["cost"])
+        return trucks
+
+    @classmethod
+    def from_input(cls):
+        while True:
+            truck_type = input("Tamanho do caminhão (PEQUENO/MEDIO/GRANDE): ").upper()
+            if truck_type in cls.truck_info:
+                break
+            print("Tamanho inválido, tente novamente.")
+        info = cls.truck_info[truck_type]
+        if truck_type == "":
+            return None
+        return cls(truck_type, info["capacity"], info["cost"])
+
+    @classmethod
+    def get_trucks_for_leg(cls, leg):
+        truck_counts = {"PEQUENO": 0, "MEDIO": 0, "GRANDE": 0}
+        trucks = cls.get_all_trucks()
+        small_capacity = trucks["PEQUENO"][0]
+        weight = leg.get_total_weight()
+        max_trucks = 0
+        amount_of_small_ones = round(weight / small_capacity)
+        print("amount_of_small_ones:", amount_of_small_ones)
+        if amount_of_small_ones > 1:
+            max_trucks = amount_of_small_ones
+            truck_counts["PEQUENO"] = amount_of_small_ones
+        else:
+            truck_counts["PEQUENO"] = 1
+        return truck_counts
+
+    # use bruteforce to get combinations
+    @classmethod
+    def get_possible_combinations(cls, truck_counts):
+        print("truck_counts: ", truck_counts)
+        combinations_len = truck_counts["PEQUENO"]
+        trucks = ["PEQUENO", "MEDIO", "GRANDE"]
+        combinations = []
+        for i in range(1, combinations_len + 1):
+            for c in combinations_with_replacement(trucks, i):
+                if len(c) == i:
+                    combination_dict = {}
+                    for truck in c:
+                        if truck not in combination_dict:
+                            combination_dict[truck] = 1
+                        else:
+                            combination_dict[truck] += 1
+                    combinations.append(combination_dict)
+        return combinations
+
+    @classmethod
+    def get_valid_combinations(cls, combinations, weight):
+        valid_combos = []
+        trucks = cls.get_all_trucks()
+        for combination in combinations:
+            combo_weight = 0
+            for truck, count in combination.items():
+                combo_weight += trucks[truck][0] * count
+            if combo_weight >= weight:
+                valid_combos.append(combination)
+        print("valid_combos: ", valid_combos)
+        return valid_combos
+
+    @classmethod
+    def get_cheapest_combo(cls, valid_combos):
+        trucks = cls.get_all_trucks()
+        cheapest_combo = []
+        min_combo_cost = None
+        for combo in valid_combos:
+            combo_cost = 0
+            for truck, count in combo.items():
+                combo_cost += trucks[truck][1] * count
+            if min_combo_cost is None or combo_cost < min_combo_cost:
+                min_combo_cost = combo_cost
+                cheapest_combo = combo
+        return cheapest_combo
+
+
 class Distances(object):
     def __init__(self, csv_file):
         self.csv = csv_file
@@ -30,108 +131,17 @@ class Distances(object):
     def city_exists(self, city):
         return city.name in self.data
 
-    def calculate_cost(self, leg, trucks):
-        origin = leg.origin.name
-        destination = leg.destination.name
-        distance = self.data[origin][destination]
-        cost = 0
-        for truck in trucks:
-            cost += truck.price_per_km * distance
-        return cost
+    def calculate_cost(self, distance, cheapest_combo):
+        cost = 0.00
+        trucks = Truck.get_all_trucks()
+        for truck, count in cheapest_combo.items():
+            print("trucks[truck][1]: ", trucks[truck][1])
+            cost += trucks[truck][1] * count
+        print(distance)
+        return cost * distance
 
 
 distances = Distances("DNIT-Distancias.csv")
-
-
-class Truck(object):
-    def __init__(self, type, capacity, price_per_km):
-        self.type = type
-        self.capacity = capacity
-        self.price_per_km = price_per_km
-
-    truck_info = {
-        "PEQUENO": {"capacity": 1000, "cost": 4.87},
-        "MEDIO": {"capacity": 4000, "cost": 11.92},
-        "GRANDE": {"capacity": 10000, "cost": 27.44},
-    }
-
-    def __str__(self):
-        type = self.type
-        trucks = {}
-        for type, info in cls.truck_info.items():
-            trucks[type] = (info["capacity"], info["cost"])
-        return trucks
-
-    @classmethod
-    def from_input(cls):
-        while True:
-            truck_type = input("Tamanho do caminhão (PEQUENO/MEDIO/GRANDE): ").upper()
-            if truck_type in cls.truck_info:
-                break
-            print("Tamanho inválido, tente novamente.")
-        info = cls.truck_info[truck_type]
-        if truck_type == "":
-            return None
-        return cls(truck_type, info["capacity"], info["cost"])
-
-    # use bruteforce to get combinations
-    def get_possible_combinations(self, truck_counts):
-        print("truck_counts: ", truck_counts)
-        combinations_len = truck_counts["PEQUENO"]
-        trucks = ["PEQUENO", "MEDIO", "GRANDE"]
-        combinations = []
-        for i in range(1, combinations_len + 1):
-            for c in combinations_with_replacement(trucks, i):
-                if len(c) == i:
-                    combination_dict = {}
-                    for truck in c:
-                        if truck not in combination_dict:
-                            combination_dict[truck] = 1
-                        else:
-                            combination_dict[truck] += 1
-                    combinations.append(combination_dict)
-        return combinations
-
-    @classmethod
-    def get_all_trucks(cls):
-        trucks = {}
-        for type, info in cls.truck_info.items():
-            trucks[type] = (info["capacity"], info["cost"])
-        return trucks
-
-    @classmethod
-    def get_trucks_for_leg(cls, leg):
-        cls.leg = leg
-        truck_counts = {"PEQUENO": 0, "MEDIO": 0, "GRANDE": 0}
-        trucks = cls.get_all_trucks()
-        small_capacity = trucks["PEQUENO"][0]
-        weight = leg.get_total_weight()
-        max_trucks = 0
-        print("small:", small_capacity)
-        print("weight:", weight)
-        amount_of_small_ones = round(weight / small_capacity)
-        print("amount_of_small_ones:", amount_of_small_ones)
-        if amount_of_small_ones > 1:
-            max_trucks = amount_of_small_ones
-            truck_counts["PEQUENO"] = amount_of_small_ones
-        else:
-            truck_counts["PEQUENO"] = 1
-        return truck_counts
-
-    @classmethod
-    def get_valid_combinations(cls, combinations, weight):
-        valid_combos = []
-        trucks = cls.get_all_trucks()
-        print("trucks: ", trucks)
-        for combination in combinations:
-            print("combination: ", combination)
-            print(combination.keys(), combination.values())
-        print("trucks: ", trucks)
-        return valid_combos
-
-    @classmethod
-    def get_capacity(cls):
-        pass
 
 
 class City(object):
@@ -234,16 +244,6 @@ class Leg(object):
         return [self.origin, self.destination, self.get_total_weight()]
 
 
-class Transport(object):
-    def __init__(self, legs):
-        self.legs = legs
-        self.truck_counts = {"PEQUENO": 0, "MEDIO": 0, "GRANDE": 0}
-
-    def calculate_cost(self, distances):
-        total_cost = 0
-        return total_cost
-
-
 def get_pairs(city_list):
     pairs = []
     for i in range(len(city_list) - 1):
@@ -312,7 +312,7 @@ def main():
             start = City.from_input()
             end = City.from_input()
             d = distances.get(start, end)
-            truck = Truck.from_input()
+            truck = truck.from_input()
             cost = truck.price_per_km
             total_cost = cost * d
             if d == None:
@@ -357,31 +357,74 @@ def main():
                 leg = Leg(origin, destination, cargo)
                 legs.append(leg)
 
-            transport = Transport(legs)
-
-            trucks = transport.calculate_trucks()
-
-            total_cost = transport.calculate_cost(distances)
-
-            print(legs, transport, total_cost)
-
-            for leg in transport.legs:
+            for leg in legs:
                 total_weight = leg.get_total_weight()
-                trucks = 0
+
+                truck = Truck
+
                 truck_counts = truck.get_trucks_for_leg(leg)
+
                 combinations = truck.get_possible_combinations(truck_counts)
+
                 valid_combos = truck.get_valid_combinations(combinations, total_weight)
+
+                cheapest_combo = truck.get_cheapest_combo(valid_combos)
+
                 distance = distances.get(leg.origin, leg.destination)
-                cost = distances.calculate_cost(leg, trucks)
+
+                cost = distances.calculate_cost(distance, cheapest_combo)
+
+                amount_of_trucks = sum(cheapest_combo.values())
                 print(
-                    f"Rota: {leg.origin} - {leg.destination}, peso total = {total_weight}kg, "
-                    f"serão necessários {len(trucks)} caminhões do tamanho {truck_type}, cada um percorrerá "
-                    f"uma distancia de {distance}km, totalizando R${cost:.2f}"
+                    f"Rota: {leg.origin} - {leg.destination}, peso total = {total_weight}kg, caminhões necessários: {cheapest_combo}, distância total = {distance}km, preço total = R${cost:.2f}"
                 )
+
+                # Define the filename of the new CSV file
+                filename = "output.csv"
+
+                # Define the data to be written into the CSV file
+                data = [
+                    leg.origin,
+                    leg.destination,
+                    total_weight,
+                    cheapest_combo,
+                    distance,
+                    cost,
+                ]
+
+                # Write the data into the CSV file
+                if os.path.isfile(filename):
+                    with open(filename, mode="a", newline="") as f:
+                        writer = csv.writer(f)
+                        writer.writerow(data)
+                
+                else:
+                    with open(filename, mode="w", newline="") as f:
+                        writer = csv.writer(f)
+                        writer.writerow(["ORIGEM", "DESTINO", "PESO TOTAL", "CAMINHÕES", "DISTÂNCIA TOTAL", "PREÇO TOTAL"])
+                        writer.writerow(data)
+
+if os.path.isfile(filename):
+    # File exists, so open it in append mode and add a new row
+    with open(filename, mode="a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(data)
+else:
+    # File does not exist, so create a new file and write a header row followed by the data
+    with open(filename, mode="w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["First Name", "Last Name", "Age"])
+        writer.writerow(data)
+
 
         # Dados estatísticos
         elif option == 3:
-            pass
+            print("Dados estatísticos")
+            # Open output.csv in read mode
+            with open("output.csv", "r") as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    print(row)
 
         # Finalizar programa
         elif option == 4:
