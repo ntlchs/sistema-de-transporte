@@ -361,15 +361,13 @@ def main():
             for leg in legs:
                 total_weight = leg.get_total_weight()
 
-                truck = Truck
+                truck_counts = Truck.get_trucks_for_leg(leg)
 
-                truck_counts = truck.get_trucks_for_leg(leg)
+                combinations = Truck.get_possible_combinations(truck_counts)
 
-                combinations = truck.get_possible_combinations(truck_counts)
+                valid_combos = Truck.get_valid_combinations(combinations, total_weight)
 
-                valid_combos = truck.get_valid_combinations(combinations, total_weight)
-
-                cheapest_combo = truck.get_cheapest_combo(valid_combos)
+                cheapest_combo = Truck.get_cheapest_combo(valid_combos)
 
                 distance = distances.get(leg.origin, leg.destination)
 
